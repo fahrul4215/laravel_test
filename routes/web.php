@@ -16,7 +16,11 @@ Route::get('/', function () {
 });
 
 Route::get('/admin', 'AdminController@index')->middleware('auth');
-Route::get('/admin/images', 'AdminController@images')->middleware('auth');
+
+Route::get('/admin/images', 'ImageController@index')->middleware('auth');
+Route::get('/admin/images/{id}/edit', 'ImageController@edit')->middleware('auth');
+Route::post('/admin/images/save', 'ImageController@save')->middleware('auth');
+Route::get('/admin/images/delete/{id}', 'ImageController@delete')->middleware('auth');
 
 Auth::routes();
 

@@ -62,6 +62,10 @@
         </div>
         <!-- /.content-wrapper -->
 
+        {{-- modal --}}
+        @yield('modal')
+        {{-- /.modal --}}
+
         <!-- Main Footer -->
         @include('admin/footer')
         {{-- /.Footer --}}
