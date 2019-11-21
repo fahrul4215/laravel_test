@@ -69,6 +69,7 @@
                 <div class="top-right links">
                     @auth
                         <a href="{{ url('/home') }}">Home</a>
+                        <a href="{{ url('/admin') }}">Dashboard</a>
                     @else
                         <a href="{{ route('login') }}">Login</a>
 
@@ -81,18 +82,20 @@
 
             <div class="content">
                 <div class="title m-b-md">
-                    Laravel
+                    {{ env('APP_NAME') }}
                 </div>
 
                 <div class="links">
-                    <a href="https://laravel.com/docs">Docs</a>
-                    <a href="https://laracasts.com">Laracasts</a>
-                    <a href="https://laravel-news.com">News</a>
-                    <a href="https://blog.laravel.com">Blog</a>
-                    <a href="https://nova.laravel.com">Nova</a>
-                    <a href="https://forge.laravel.com">Forge</a>
-                    <a href="https://vapor.laravel.com">Vapor</a>
-                    <a href="https://github.com/laravel/laravel">GitHub</a>
+                    <a href="#">F</a>
+                    <a href="#">A</a>
+                    <a href="#">H</a>
+                    <a href="#">R</a>
+                    <a href="#">U</a>
+                    <a href="#">L</a>
+                    <a href="#">4</a>
+                    <a href="#">2</a>
+                    <a href="#">1</a>
+                    <a href="#">5</a>
                 </div>
             </div>
         </div>
