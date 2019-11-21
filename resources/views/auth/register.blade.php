@@ -72,10 +72,10 @@
                         <br>
 
                         <div class="form-group row mb-0">
-                            <div class="col-md-12">
-                                <a href="{{ url('/auth/facebook') }}" class="btn btn-facebook">
-                                    <i class="fa fa-facebook"></i>
-                                    Sign Up with Facebook
+                            <div class="col-md-12 text-center">
+                                <p>Or Register With</p>
+                                <a href="{{ url('/auth/facebook') }}" class="btn btn-facebook" style="background-color: mediumblue; color: white">
+                                    <i class="fab fa-facebook"></i> Facebook
                                 </a>
                             </div>
                         </div>
