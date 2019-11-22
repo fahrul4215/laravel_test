@@ -16,7 +16,13 @@ Route::get('/', function () {
 });
 
 Route::get('/admin', 'AdminController@index')->middleware('auth');
-Route::get('/admin/images', 'AdminController@images')->middleware('auth');
+
+Route::group(['prefix' => 'admin'], function () {
+    Route::get('/images', 'DataImageController@index')->middleware('auth');
+    Route::get('/images/{id}/edit', 'DataImageController@edit')->middleware('auth');
+    Route::post('/images/store', 'DataImageController@store')->middleware('auth');
+    Route::get('/images/delete/{id}', 'DataImageController@destroy')->middleware('auth');
+});
 
 Auth::routes();
 

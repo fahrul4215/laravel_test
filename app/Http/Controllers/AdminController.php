@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\DataImage;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -9,11 +11,8 @@ class AdminController extends Controller
 {
     public function index()
     {
-        return view('admin/dashboard');
-    }
-
-    public function images()
-    {
-        return view('admin/images');
+        $countImage = DataImage::count();
+        $countMember= User::count();
+        return view('admin/dashboard', ['countImage'=>$countImage, 'countMember'=> $countMember]);
     }
 }

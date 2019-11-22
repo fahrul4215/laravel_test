@@ -8,6 +8,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
+    @yield('meta')
 
     <title>{{ env('APP_NAME') }}</title>
 
@@ -61,6 +62,10 @@
             <!-- /.content -->
         </div>
         <!-- /.content-wrapper -->
+
+        {{-- modal --}}
+        @yield('modal')
+        {{-- /.modal --}}
 
         <!-- Main Footer -->
         @include('admin/footer')
