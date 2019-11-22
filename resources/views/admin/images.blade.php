@@ -1,5 +1,10 @@
 @extends('admin/admin')
 
+@section('meta')
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+@endsection
+
 @section('css')
     <link rel="stylesheet" href="{{ asset('https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css') }}">
     <!-- Ionicons -->
@@ -8,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('lte/plugins/datatables-bs4/css/dataTables.bootstrap4.css') }}">
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="{{ asset('lte/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
     <style>
         .uploader {
             display: block;
@@ -16,7 +22,7 @@
             width: 100%;
             max-width: 600px;
         }
-        .uploader label {
+        .uploader .label-image {
             float: left;
             clear: both;
             width: 100%;
@@ -28,14 +34,14 @@
             transition: all .2s ease;
             user-select: none;
         }
-        .uploader label:hover {
+        .uploader .label-image:hover {
             border-color: #454cad;
         }
-        .uploader label.hover {
+        .uploader .label-image.hover {
             border: 3px solid #454cad;
             box-shadow: inset 0 0 0 6px #eee;
         }
-        .uploader label.hover #start i.fa {
+        .uploader .label-image.hover #start i.fa {
             transform: scale(0.8);
             opacity: 0.3;
         }
@@ -110,11 +116,7 @@
         .uploader input[type="file"] {
             display: none;
         }
-        .uploader div {
-            margin: 0 0 .5rem 0;
-            color: #5f6982;
-        }
-        .uploader .btn {
+        .uploader .btn-upload {
             display: inline-block;
             margin: .5rem .5rem 1rem .5rem;
             clear: both;
@@ -148,27 +150,119 @@
     <script src="{{ asset('lte/plugins/datatables-bs4/js/dataTables.bootstrap4.js') }}"></script>
     <!-- SweetAlert2 -->
     <script src="{{ asset('lte/plugins/sweetalert2/sweetalert2.min.js') }}"></script>
+    <!-- Bootstrap Switch -->
+    <script src="{{ asset('lte/plugins/bootstrap-switch/js/bootstrap-switch.min.js') }}"></script>
+    {{-- Validate --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.0/jquery.validate.js"></script>
     <!-- page script -->
     <script>
-        $(function () {
-            $("#dt-images").DataTable();
+        var SITE_URL = '{{ URL::to('/admin') }}'
+        $(document).ready(function () {
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
+            $("#dt-images").DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: SITE_URL + "/images",
+                    type: 'GET',
+                },
+                columns: [
+                    {data: 'id', name: 'id', 'visible': false},
+                    {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                    {data: 'title', name: 'title'},
+                    {data: 'image', name: 'image', render: getImage},
+                    {data: 'status', name: 'status'},
+                    {data: 'action', name: 'action', orderable: false},
+                ],
+                order: [[0, 'desc']],
+                columnDefs: [
+                    {
+                        targets: [1, 3, 4, 5],
+                        className: 'text-center'
+                    }
+                ]
+            });
+
+            function getImage(data, type, full, meta) {
+                data = (data == '') ? 'no-image.png' : data;
+                return '<img width="200" src="{{ asset('images') }}/'+data+'"/>';
+            }
         });
 
         $(function() {
-            const Toast = Swal.mixin({
+            $('#create-new-data').click(function () {
+                $('#btn-save').val("create-data-image");
+                $('#image_id').val('');
+                $('#file-upload').val('');
+                resetImageFormData();
+                $('#data-form').trigger("reset");
+                $('#ajax-modal-title').html("Add New Data");
+                $('#ajax-modal').modal("show");
+            });
+
+            /* When click edit user */
+            $('body').on('click', '.edit-data', function () {
+                var data_id = $(this).data('id');
+                $.get(SITE_URL + '/images/' + data_id +'/edit', function (data) {
+                    $('#ajax-modal-title').html("Edit data");
+                    $('#btn-save').val("edit-data");
+                    $('#ajax-modal').modal('show');
+                    $('#image_id').val(data.id);
+                    $('#title').val(data.title);
+                    loadImage(data.image);
+                    $("input[data-bootstrap-switch]").bootstrapSwitch('state', (data.status == 'on') ? true : false);
+                })
+            });
+
+            $('body').on('click', '#delete-data', function () {
+                var data_id = $(this).data("id");
+                if(confirm("Are You sure want to delete???")){
+                    $.ajax({
+                        type: "get",
+                        url: SITE_URL + "/images/delete/"+ data_id,
+                        success: function (data) {
+                            var oTable = $('#dt-images').dataTable();
+                            oTable.fnDraw(false);
+                        },
+                        error: function (data) {
+                            console.log('Error:', data);
+                        }
+                    });
+                }
+            });
+
+            $("input[data-bootstrap-switch]").each(function(){
+                var s = false;
+                $(this).bootstrapSwitch('state', s);
+                $('#status').prop('checked', s);
+                $('#val-status').val((s) ? 'on' : 'off');
+
+                $(this).on('switchChange.bootstrapSwitch', function (e, state) {
+                    e.preventDefault();
+                    $('#val-status').val((state) ? 'on' : 'off');
+                })
+            });
+
+        });
+
+        const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
                 timer: 3000
             });
 
-            $('.swalDefaultSuccess').click(function() {
-                Toast.fire({
-                    type: 'success',
-                    title: 'Image Success'
-                })
-            });
-        });
+        function SuccessToast(data) {
+            Toast.fire({
+                type: 'success',
+                title: 'Successfully ' + data
+            })
+        };
 
         function readURL(input, id) {
             id = id || '#file-image';
@@ -184,494 +278,140 @@
                 $('#start').hide();
             }
         };
+
+        function loadImage(imageName) {
+            if (imageName == '') {
+                resetImageFormData();
+                return;
+            }
+            $('#file-image').attr('src', '{{ asset('images') }}'+'/'+imageName);
+            $('#image-name').val(imageName);
+            $('#file-image').removeClass('hidden');
+            $('#start').hide();
+        }
+
+        function resetImageFormData() {
+            $('#error-text').html('');
+            $('#file-image').addClass('hidden');
+            $('#start').show();
+        }
+
+        if ($("#data-form").length > 0) {
+            $("#data-form").validate({
+                submitHandler: function(form) {
+                    var actionType = $('#btn-save').val();
+                    $('#btn-save').html('Sending..');
+
+                    $.ajax({
+                        data: new FormData(form),
+                        url: SITE_URL + "/images/store",
+                        type: "POST",
+                        dataType: 'json',
+                        processData: false,
+                        contentType: false,
+                        success: function (data) {
+                            $('#data-form').trigger("reset");
+                            $('#ajax-modal').modal('hide');
+                            $('#btn-save').html('Save Changes');
+                            var oTable = $('#dt-images').dataTable();
+                            oTable.fnDraw(false);
+                            SuccessToast((actionType == 'edit-data') ? 'Edited' : 'Added');
+                        },
+                        error: function (data) {
+                            console.log("Error:", data);
+                            resetImageFormData();
+                            $('#error-text').html(data.responseJSON.errors.fileUpload);
+                            $('#btn-save').html('Save Changes');
+                        }
+                    });
+                }
+            })
+        }
     </script>
 @endsection
 
 @section('active-page', 'Data Images')
 
 @section('content')
-@if ($message = Session::get('success'))
-<div class="alert alert-success alert-block">
-    <button type="button" class="close" data-dismiss="alert">×</button>
-    <strong>{{ $message }}</strong>
-</div>
-@endif
-
-<div class="card">
-    <div class="card-header">
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-insert">
-            Add Image
-        </button>
+    @if ($message = Session::get('success'))
+    <div class="alert alert-success alert-block">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <strong>{{ $message }}</strong>
     </div>
-    <!-- /.card-header -->
-    <div class="card-body">
-        <table id="dt-images" class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Rendering engine</th>
-                    <th>Browser</th>
-                    <th>Platform(s)</th>
-                    <th>Engine version</th>
-                    <th>CSS grade</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Trident</td>
-                    <td>Internet
-                        Explorer 4.0
-                    </td>
-                    <td>Win 95+</td>
-                    <td> 4</td>
-                    <td>X</td>
-                </tr>
-                <tr>
-                    <td>Trident</td>
-                    <td>Internet
-                        Explorer 5.0
-                    </td>
-                    <td>Win 95+</td>
-                    <td>5</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Trident</td>
-                    <td>Internet
-                        Explorer 5.5
-                    </td>
-                    <td>Win 95+</td>
-                    <td>5.5</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Trident</td>
-                    <td>Internet
-                        Explorer 6
-                    </td>
-                    <td>Win 98+</td>
-                    <td>6</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Trident</td>
-                    <td>Internet Explorer 7</td>
-                    <td>Win XP SP2+</td>
-                    <td>7</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Trident</td>
-                    <td>AOL browser (AOL desktop)</td>
-                    <td>Win XP</td>
-                    <td>6</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Firefox 1.0</td>
-                    <td>Win 98+ / OSX.2+</td>
-                    <td>1.7</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Firefox 1.5</td>
-                    <td>Win 98+ / OSX.2+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Firefox 2.0</td>
-                    <td>Win 98+ / OSX.2+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Firefox 3.0</td>
-                    <td>Win 2k+ / OSX.3+</td>
-                    <td>1.9</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Camino 1.0</td>
-                    <td>OSX.2+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Camino 1.5</td>
-                    <td>OSX.3+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Netscape 7.2</td>
-                    <td>Win 95+ / Mac OS 8.6-9.2</td>
-                    <td>1.7</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Netscape Browser 8</td>
-                    <td>Win 98SE+</td>
-                    <td>1.7</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Netscape Navigator 9</td>
-                    <td>Win 98+ / OSX.2+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.0</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.1</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.1</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.2</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.2</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.3</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.3</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.4</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.4</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.5</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.5</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.6</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>1.6</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.7</td>
-                    <td>Win 98+ / OSX.1+</td>
-                    <td>1.7</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Mozilla 1.8</td>
-                    <td>Win 98+ / OSX.1+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Seamonkey 1.1</td>
-                    <td>Win 98+ / OSX.2+</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Gecko</td>
-                    <td>Epiphany 2.20</td>
-                    <td>Gnome</td>
-                    <td>1.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>Safari 1.2</td>
-                    <td>OSX.3</td>
-                    <td>125.5</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>Safari 1.3</td>
-                    <td>OSX.3</td>
-                    <td>312.8</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>Safari 2.0</td>
-                    <td>OSX.4+</td>
-                    <td>419.3</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>Safari 3.0</td>
-                    <td>OSX.4+</td>
-                    <td>522.1</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>OmniWeb 5.5</td>
-                    <td>OSX.4+</td>
-                    <td>420</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>iPod Touch / iPhone</td>
-                    <td>iPod</td>
-                    <td>420.1</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Webkit</td>
-                    <td>S60</td>
-                    <td>S60</td>
-                    <td>413</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 7.0</td>
-                    <td>Win 95+ / OSX.1+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 7.5</td>
-                    <td>Win 95+ / OSX.2+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 8.0</td>
-                    <td>Win 95+ / OSX.2+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 8.5</td>
-                    <td>Win 95+ / OSX.2+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 9.0</td>
-                    <td>Win 95+ / OSX.3+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 9.2</td>
-                    <td>Win 88+ / OSX.3+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera 9.5</td>
-                    <td>Win 88+ / OSX.3+</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Opera for Wii</td>
-                    <td>Wii</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Nokia N800</td>
-                    <td>N800</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Presto</td>
-                    <td>Nintendo DS browser</td>
-                    <td>Nintendo DS</td>
-                    <td>8.5</td>
-                    <td>C/A<sup>1</sup></td>
-                </tr>
-                <tr>
-                    <td>KHTML</td>
-                    <td>Konqureror 3.1</td>
-                    <td>KDE 3.1</td>
-                    <td>3.1</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>KHTML</td>
-                    <td>Konqureror 3.3</td>
-                    <td>KDE 3.3</td>
-                    <td>3.3</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>KHTML</td>
-                    <td>Konqureror 3.5</td>
-                    <td>KDE 3.5</td>
-                    <td>3.5</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Tasman</td>
-                    <td>Internet Explorer 4.5</td>
-                    <td>Mac OS 8-9</td>
-                    <td>-</td>
-                    <td>X</td>
-                </tr>
-                <tr>
-                    <td>Tasman</td>
-                    <td>Internet Explorer 5.1</td>
-                    <td>Mac OS 7.6-9</td>
-                    <td>1</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Tasman</td>
-                    <td>Internet Explorer 5.2</td>
-                    <td>Mac OS 8-X</td>
-                    <td>1</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>NetFront 3.1</td>
-                    <td>Embedded devices</td>
-                    <td>-</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>NetFront 3.4</td>
-                    <td>Embedded devices</td>
-                    <td>-</td>
-                    <td>A</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>Dillo 0.8</td>
-                    <td>Embedded devices</td>
-                    <td>-</td>
-                    <td>X</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>Links</td>
-                    <td>Text only</td>
-                    <td>-</td>
-                    <td>X</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>Lynx</td>
-                    <td>Text only</td>
-                    <td>-</td>
-                    <td>X</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>IE Mobile</td>
-                    <td>Windows Mobile 6</td>
-                    <td>-</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Misc</td>
-                    <td>PSP browser</td>
-                    <td>PSP</td>
-                    <td>-</td>
-                    <td>C</td>
-                </tr>
-                <tr>
-                    <td>Other browsers</td>
-                    <td>All others</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>U</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Rendering engine</th>
-                    <th>Browser</th>
-                    <th>Platform(s)</th>
-                    <th>Engine version</th>
-                    <th>CSS grade</th>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-    <!-- /.card-body -->
-</div>
-@endsection
+    @endif
 
-@section('modal')
-<!-- Modal -->
-<div class="modal fade" id="modal-insert" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Data Image</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="file-upload-form" class="uploader" action="{{url('admin/images/save')}}" method="post" accept-charset="utf-8" enctype="multipart/form-data">
-                    @csrf
-                    <input id="file-upload" type="file" name="fileUpload" accept="image/png,image/gif,image/jpeg" onchange="readURL(this);">
-                    <label for="file-upload" id="file-drag">
-                        <img id="file-image" src="#" alt="Preview" class="hidden">
-                        <div id="start" >
-                            <i class="fa fa-download" aria-hidden="true"></i>
-                            <div>Select a file or drag here</div>
-                            <div id="notimage" class="hidden">Please select an image</div>
-                            <span id="file-upload-btn" class="btn btn-primary">Select a file</span>
-                            <br>
-                            <span class="text-danger">{{ $errors->first('fileUpload') }}</span>
+    <div class="card">
+        <div class="card-header">
+            <button type="button" id="create-new-data" class="btn btn-primary">
+                Add Image
+            </button>
+        </div>
+        <!-- /.card-header -->
+        <div class="card-body">
+            <table id="dt-images" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>No</th>
+                        <th>Title</th>
+                        <th>Image</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <!-- /.card-body -->
+    </div>
+    @endsection
+
+    @section('modal')
+    <!-- Modal -->
+    <div class="modal fade" id="ajax-modal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ajax-modal-title"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="data-form" class="uploader" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="image_id" id="image_id">
+                        <input type="hidden" name="status" id="val-status">
+                        <input type="hidden" name="image_name" id="image-name">
+                        <div class="form-group">
+                            <label for="title">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="Enter Title" minlength="5" maxlength="30" required>
                         </div>
-                        <button type="submit" class="btn btn-success">Submit</button>
-                    </label>
-                </form>
-            </div>
-            <div class="modal-footer">
-                {{-- <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> --}}
+                        <div class="form-group">
+                            <input id="file-upload" type="file" name="fileUpload" accept="image/png,image/gif,image/jpeg" onchange="readURL(this);">
+                            <label for="file-upload" id="file-drag" class="label-image">
+                                <img id="file-image" src="#" alt="Preview" class="hidden">
+                                <div id="start" >
+                                    <i class="fa fa-download" aria-hidden="true"></i>
+                                    <div>Select your Image</div>
+                                    <div id="notimage" class="hidden">Please select an image</div>
+                                    <span id="file-upload-btn" class="btn btn-primary btn-upload">Select a file</span>
+                                    <br>
+                                    <span id="error-text" class="text-danger">{{ $errors->first('fileUpload') }}</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <br>
+                            <input type="checkbox" id="status" data-bootstrap-switch>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" id="btn-save">Submit</button>
+                            <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 @endsection

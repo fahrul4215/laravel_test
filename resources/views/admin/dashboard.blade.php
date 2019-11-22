@@ -12,7 +12,7 @@
             <div class="info-box-content">
                 <span class="info-box-text">Data Images</span>
                 <span class="info-box-number">
-                    {{ isset($totalImage) ? $totalImage : '0' }}
+                    {{ isset($countImage) ? $countImage : '0' }}
                 </span>
             </div>
             <!-- /.info-box-content -->
@@ -27,7 +27,7 @@
             <div class="info-box-content">
                 <span class="info-box-text">Members</span>
                 <span class="info-box-number">
-                    {{ isset($totalMember) ? $totalMember : '0' }}
+                    {{ isset($countMember) ? $countMember : '0' }}
                 </span>
             </div>
             <!-- /.info-box-content -->

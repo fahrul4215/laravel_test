@@ -17,10 +17,12 @@ Route::get('/', function () {
 
 Route::get('/admin', 'AdminController@index')->middleware('auth');
 
-Route::get('/admin/images', 'ImageController@index')->middleware('auth');
-Route::get('/admin/images/{id}/edit', 'ImageController@edit')->middleware('auth');
-Route::post('/admin/images/save', 'ImageController@save')->middleware('auth');
-Route::get('/admin/images/delete/{id}', 'ImageController@delete')->middleware('auth');
+Route::group(['prefix' => 'admin'], function () {
+    Route::get('/images', 'DataImageController@index')->middleware('auth');
+    Route::get('/images/{id}/edit', 'DataImageController@edit')->middleware('auth');
+    Route::post('/images/store', 'DataImageController@store')->middleware('auth');
+    Route::get('/images/delete/{id}', 'DataImageController@destroy')->middleware('auth');
+});
 
 Auth::routes();
 
